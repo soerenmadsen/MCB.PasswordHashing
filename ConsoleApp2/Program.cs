@@ -128,6 +128,7 @@ namespace PasswordHashing
             var split4 = stopwatch.ElapsedMilliseconds;
             var clearTextPassword = "";
             var hashedPassword = "";
+            var updatedSiteUsers = new SiteUserCollection();
             for (var j=0; j < loopsize; j++)
             {
                 SiteUserEntity user = siteUsers[j];
@@ -136,11 +137,20 @@ namespace PasswordHashing
                 hashedPassword = hashingService.CreateHash(clearTextPassword);
                 var after = stopwatch.ElapsedMilliseconds;
 
-                siteUsers[j].SiteUserPassword = hashedPassword;
-                siteUsers[j].HashType = (int)HashTypeEnum.PBKDF2;
+                SiteUserEntity updatedUser = new SiteUserEntity();
+                updatedUser.IsNew = false;
+                updatedUser.SiteUserGuid = user.SiteUserGuid;
+                updatedUser.SiteUserPassword = hashedPassword;
+                updatedUser.HashType = (int)HashTypeEnum.PBKDF2;
+                updatedSiteUsers.Add(updatedUser);
+
+//                siteUsers[j].SiteUserPassword = hashedPassword;
+//                siteUsers[j].HashType = (int)HashTypeEnum.PBKDF2;
             }
             var split5 = stopwatch.ElapsedMilliseconds;
-            //            siteUsers.SaveMulti();
+            // The updatedSiteUsers only contains siteUserGuid, hashedPassword and hashType
+            // Hence overwriting other attributes should be avoided
+            //            updatedSiteUsers.SaveMulti();
             Thread.Sleep(2000); // TODO enable line above an remove this one , simulate the Save time....
 
             var split6 = stopwatch.ElapsedMilliseconds;
