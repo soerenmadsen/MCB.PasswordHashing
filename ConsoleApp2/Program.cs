@@ -98,7 +98,7 @@ namespace PasswordHashing
                             {
                                 while (amountLeft > 0)
                                 {
-                                    amountLeft -= PasswordHashing(hashingService, stopwatch, siteGuid, 100); // hashing 1000 at the time
+                                    amountLeft -= PasswordHashing(hashingService, stopwatch, siteGuid, 30); // hashing 30 at the time. This is approx 20sec for hashing and 1sec to update the database.
                                     if (amountLeft == 0)
                                     {
                                         Console.WriteLine("         AmountLeft: " + amountLeft + ". ");
