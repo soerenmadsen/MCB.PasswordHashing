@@ -36,8 +36,12 @@ namespace PasswordHashing
             // PROD CONNECTION STRING
             connectionString = MCB.Configuration.ServerConfig.GetConnectionString(5);
 
+            var countUsers = false;
+            var minNumberOfUsersToConvert = 15000;
+            var maxNumberOfUsersToConvert = 1700000;
+
             // TEST CONNECTION STRING masterpiece-20180130
-//            connectionString = "data source=172.22.51.41;persist security info=False;initial catalog=masterpiece-20180130;Trusted_Connection=True;Min Pool Size = 0; Max Pool Size=600";
+            //            connectionString = "data source=172.22.51.41;persist security info=False;initial catalog=masterpiece-20180130;Trusted_Connection=True;Min Pool Size = 0; Max Pool Size=600";
 
             MCB.MasterPiece.Data.DaoClasses.CommonDaoBase.ActualConnectionString = connectionString;
 
@@ -49,76 +53,134 @@ namespace PasswordHashing
             Thread.CurrentThread.Priority = ThreadPriority.Highest;     // Prevents "Normal" Threads from interrupting this thread
             stopwatch.Reset();
             stopwatch.Start();
-            Console.WriteLine("Password Hashing has started");
+            Console.WriteLine("Password Hashing has started, running for sites with fewer users that : " + maxNumberOfUsersToConvert);
 
-//            int filterHusetSiteGuid = 11961;
+            int filterHusetSiteGuid = 11961;
             int MCBwebbizSiteGuid = 10535;
-            AdminSitesCollection adminSites = GetAdminSites(MCBwebbizSiteGuid);
+            int lundhede = 11613;
+            int sp_invest = 10861;
+            int proshave = 10621;
+            int rosengaardcentret = 11242;
+            int helm = 11406;
+            int sinnerup = 11830;
+            int rikkeSolberg = 11321;
+            int winefamily = 12313; // MANGLER KONVERTERING, VENTER TIL 14.maj
+            int grafical = 10805;
+            int fashionshoping = 12223;
+            int skokompaniet = 11813;
+
+            int allSites = -1;
+
+            AdminSitesCollection adminSites = GetAdminSites(skokompaniet);
             Console.WriteLine("Number of Admin Sites: " + adminSites.Count);
 
             IDictionary<int, string> excludeListDictionary = GetExcludeSitelist();
             Console.WriteLine("Excluding " + excludeListDictionary.Count + " sites");
 
             var numberOfAdminSites = adminSites.Count;
-            if (numberOfAdminSites > 10)
+            if (numberOfAdminSites > 1000)
             {
                 numberOfAdminSites = 10;
             }
             if (numberOfAdminSites > 0)
             {
                 Console.WriteLine("Starting site loop: "+numberOfAdminSites+ " sites");
+                Console.WriteLine("-------------------------------------------------------");
                 for (var i = 0; i < numberOfAdminSites; i++)
                 {
                     int siteGuid = adminSites[i].SiteGuid;
                     if (excludeListDictionary.ContainsKey(siteGuid))
                     {
-                        Console.WriteLine("-------------------------------------------------------");
-                        Console.WriteLine(siteGuid + " -> NO HASHING, " + adminSites[i].AdminCompany.Name);
+                        if (countUsers)
+                        {
+//                            Console.WriteLine("-------------------------------------------------------");
+//                            Console.WriteLine(siteGuid + " -> NO HASHING, " + adminSites[i].AdminCompany.Name);
+                        }
+                        else
+                        {
+//                            Console.WriteLine("-------------------------------------------------------");
+//                            Console.WriteLine(siteGuid + " -> NO HASHING, " + adminSites[i].AdminCompany.Name);
+                            Console.WriteLine(siteGuid + ";" + GetNumberOfUsersToHash(siteGuid) +";" + adminSites[i].AdminCompany.Name + "; Excluded from hashing");
+                        }
                     }
                     else
                     {
-                        Console.WriteLine("-------------------------------------------------------");
-                        Console.WriteLine(siteGuid + " -> Start Hashing, " + adminSites[i].AdminCompany.Name);
-                        Console.WriteLine("Fist ensure that the site has module 21, with moduleparameter 3050 and moduleparametervalue 1");
-                        var passwordPashingEnabled = EnableMuduleKartotakforSite(siteGuid);
-                        if (passwordPashingEnabled)
+                        var numberOfUsersLeftToConvert = GetNumberOfUsersToHash(siteGuid);
+                        if (countUsers)
                         {
-                            Console.Write("         AmountLeft: ");
-                            var siteUsers = new SiteUserCollection();
-                            ISortExpression sortExpression = new SortExpression(SiteUserFields.SiteUserGuid | SortOperator.Ascending);
-                            IPredicateExpression filter = GetSelectionFilter(siteGuid);
-                            siteUsers.GetMulti(filter, null, null);
-                            var amountLeft = siteUsers.GetDbCount(filter);
-                            Console.Write(amountLeft);
-                            if (amountLeft == 0)
+                            if (numberOfUsersLeftToConvert == 0)
                             {
-                                Console.WriteLine(", Der var IKKE nongen at hashe");
+                                // silent ignore these. they have more uses that we want at this moment
+//                                Console.WriteLine(siteGuid + ";" + numberOfUsersLeftToConvert + ";" + adminSites[i].AdminCompany.Name + ";SITE IS FULLY CONVERTED");
+                            }
+                            else if (numberOfUsersLeftToConvert >= maxNumberOfUsersToConvert || numberOfUsersLeftToConvert <= minNumberOfUsersToConvert )
+                            {
+                                // silent ignore these. they have more uses that we want at this moment
                             }
                             else
                             {
-                                while (amountLeft > 0)
-                                {
-                                    amountLeft -= PasswordHashing(hashingService, stopwatch, siteGuid, 30); // hashing 30 at the time. This is approx 20sec for hashing and 1sec to update the database.
-                                    if (amountLeft == 0)
-                                    {
-                                        Console.WriteLine("         AmountLeft: " + amountLeft + ". ");
-                                    }
-                                    else
-                                    {
-                                        Console.Write("         AmountLeft: " + amountLeft);
-                                    }
-                                }
+                                Console.WriteLine(siteGuid + ";" + numberOfUsersLeftToConvert + ";" + adminSites[i].AdminCompany.Name + "; To be converted this time");
                             }
                         }
                         else
                         {
-                            Console.WriteLine(", Password Hashing is NOT enabled for this site, and automatic enabling has failed");
+                            if (numberOfUsersLeftToConvert == 0)
+                            {
+                                // silent ignore these. they have more uses that we want at this moment
+//                                Console.WriteLine(siteGuid + ";" + numberOfUsersLeftToConvert + ";" + adminSites[i].AdminCompany.Name + ";SITE IS FULLY CONVERTED");
+                            }
+                            else if(numberOfUsersLeftToConvert >= maxNumberOfUsersToConvert || numberOfUsersLeftToConvert <= minNumberOfUsersToConvert)
+                            {
+                                // silent ignore these. they have more uses that we want at this moment
+                            }
+                            else
+                            {
+                                Console.WriteLine("-------------------------------------------------------");
+                                Console.WriteLine(siteGuid + " -> Start Hashing, " + adminSites[i].AdminCompany.Name + ", Number of users: " + numberOfUsersLeftToConvert + ", max is : " + maxNumberOfUsersToConvert);
+                                Console.WriteLine("First ensure that the site has module 21, with moduleparameter 3050 and moduleparametervalue 1");
+                                var passwordPashingEnabled = EnableModuleKartotekforSite(siteGuid);
+                                if (passwordPashingEnabled)
+                                {
+                                    Console.Write("         AmountLeft: ");
+                                    var siteUsers = new SiteUserCollection();
+                                    ISortExpression sortExpression = new SortExpression(SiteUserFields.SiteUserGuid | SortOperator.Ascending);
+                                    IPredicateExpression filter = GetSelectionFilter(siteGuid);
+                                    siteUsers.GetMulti(filter, null, null);
+                                    var amountLeft = siteUsers.GetDbCount(filter);
+                                    Console.Write(amountLeft);
+                                    if (amountLeft == 0)
+                                    {
+                                        Console.WriteLine(", No passwords left to hash");
+                                    }
+                                    else
+                                    {
+                                        while (amountLeft > 0)
+                                        {
+                                            amountLeft -= PasswordHashing(hashingService, stopwatch, siteGuid, 30); // hashing 30 at the time. This is approx 20sec for hashing and 1sec to update the database.
+                                            if (amountLeft == 0)
+                                            {
+                                                Console.WriteLine("         AmountLeft: " + amountLeft + ". ");
+                                            }
+                                            else
+                                            {
+                                                Console.Write("         AmountLeft: " + amountLeft);
+                                            }
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    Console.WriteLine(", Password Hashing is NOT enabled for this site, and automatic enabling has failed");
+                                }
+                            }
+
                         }
                     }
                 }
             }
             stopwatch.Stop();
 
+            Console.WriteLine("-------------------------------------------------------");
             Console.WriteLine("Password Hashing has finished");
             Console.WriteLine("mS: " + stopwatch.ElapsedMilliseconds);
             Console.WriteLine("-------------------------------------------------------");
@@ -126,7 +188,14 @@ namespace PasswordHashing
             Console.ReadLine();
         }
 
-
+        static int GetNumberOfUsersToHash(int siteGuid)
+        {
+            var siteUsers = new SiteUserCollection();
+            ISortExpression sortExpression = new SortExpression(SiteUserFields.SiteUserGuid | SortOperator.Ascending);
+            IPredicateExpression filter = GetSelectionFilter(siteGuid);
+            siteUsers.GetMulti(filter, null, 10); // We retreive a max of batchSize users
+            return siteUsers.GetDbCount(filter);
+        } 
 
         static int PasswordHashing(PBKDF2HashingService hashingService, Stopwatch stopwatch, int siteGuid, int batchSize)
         {
@@ -148,17 +217,14 @@ namespace PasswordHashing
             var clearTextPassword = "";
             var hashedPassword = "";
             var updatedSiteUsers = new SiteUserCollection();
-//            for (var j = 0; j < loopsize; j++)
-//            {
-//                SiteUserEntity user = siteUsers[j];
+
             foreach (SiteUserEntity user in siteUsers)
-            {
-                    
+            {               
                 clearTextPassword = user.SiteUserPassword;
                 var before = stopwatch.ElapsedMilliseconds;
                 hashedPassword = hashingService.CreateHash(clearTextPassword);
                 var after = stopwatch.ElapsedMilliseconds;
-                Console.WriteLine("");
+//                Console.WriteLine("");
                 Console.WriteLine(" # " + user.SiteUserGuid + " EMAIL: " + user.SiteUserEmail);
                 SiteUserEntity updatedUser = new SiteUserEntity();
                 updatedUser.IsNew = false;
@@ -171,7 +237,7 @@ namespace PasswordHashing
             // The updatedSiteUsers only contains siteUserGuid, hashedPassword and hashType
             // Hence overwriting other attributes should be avoided
 
-            updatedSiteUsers.SaveMulti();
+            updatedSiteUsers.SaveMulti(); // saving the whole batch
 //            Console.WriteLine("Click here to save " + updatedSiteUsers.Count + " users.... !");
 //            Console.ReadLine();
             //            Thread.Sleep(2000); // TODO enable line above an remove this one , simulate the Save time....
@@ -191,8 +257,8 @@ namespace PasswordHashing
             filter.Add(SiteUserFields.SiteUserPassword.IsNotNull())
                 .Add(SiteUserFields.HashType.Equal(HashTypeEnum.None))
                 .Add(SiteUserFields.SiteGuid == siteGuid)
-                .Add(SiteUserFields.SiteUserEmail.Like("%sma%@mcb.dk%")
-                    .Or(SiteUserFields.SiteUserEmail.Like("%drc@mcb.dk%")))
+//                .Add(SiteUserFields.SiteUserEmail.Like("%sma%@mcb.dk%")
+//                    .Or(SiteUserFields.SiteUserEmail.Like("%rsj@mcb.dk%")))
                 //                .Add(SiteUserFields.SiteUserPassword.Like("%MCB%"))
                 .Add(SiteUserFields.SiteUserPassword.NotEqual(""));
             return filter;
@@ -212,7 +278,7 @@ namespace PasswordHashing
             return adminSites;
         }
 
-        static Boolean EnableMuduleKartotakforSite(int siteGuid)
+        static Boolean EnableModuleKartotekforSite(int siteGuid)
         {
              int adminSiteModuleGuid = EnableAdminSiteModule21(siteGuid);
 
@@ -303,8 +369,11 @@ namespace PasswordHashing
                 {10620, "vildmedvin.dk"},
                 {10649, "SpejderSport.dk"},
                 {10716, "jyskkemi.dk"},
+                {10897, "Alere" }, // Endnu et testsite, så den går vi også udenom
                 {11108, "linds.dk"},
+                {11304, "arla-shoppen" }, // Should not be hashed, they have a special way of redusing their assortment
                 {11402, "BIKE&CO"},
+                {11440, "H.J. Hansen Vin A/S" },  // Ikke kunde fra 1.juni 2018
                 {11585, "HHC Distribution"},
                 {11615, "Georg Jensen Damask"},
                 {11659, "LD Handel & Miljø A/S"},
@@ -334,6 +403,7 @@ namespace PasswordHashing
                 {12279, "ROYKON AS"},
                 {12312, "BON'A PARTE - Test Environment"},
                 {12316, "Linds A/S TestEnvironment"},
+                {12332, "Antalis testsite" }, // Skal være det samme som production
                 {12335, "ReaMed A/S"}
             };
             return returnList;
