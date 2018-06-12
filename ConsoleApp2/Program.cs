@@ -37,7 +37,8 @@ namespace PasswordHashing
             connectionString = MCB.Configuration.ServerConfig.GetConnectionString(5);
 
             var countUsers = false;
-            var minNumberOfUsersToConvert = 15000;
+
+            var minNumberOfUsersToConvert = 1;
             var maxNumberOfUsersToConvert = 1700000;
 
             // TEST CONNECTION STRING masterpiece-20180130
@@ -69,9 +70,14 @@ namespace PasswordHashing
             int fashionshoping = 12223;
             int skokompaniet = 11813;
 
+            int alereMINI = 12093; // 287 users
+            int alereDK = 11981; // 3217 users
+            int alereNO = 12094; // 5447 users
+            int alere4 = 10897; // Alere A/S DK TESTSITE 15193 users
+
             int allSites = -1;
 
-            AdminSitesCollection adminSites = GetAdminSites(skokompaniet);
+            AdminSitesCollection adminSites = GetAdminSites(-1);
             Console.WriteLine("Number of Admin Sites: " + adminSites.Count);
 
             IDictionary<int, string> excludeListDictionary = GetExcludeSitelist();
@@ -119,7 +125,7 @@ namespace PasswordHashing
                             }
                             else
                             {
-                                Console.WriteLine(siteGuid + ";" + numberOfUsersLeftToConvert + ";" + adminSites[i].AdminCompany.Name + "; To be converted this time");
+                                Console.WriteLine(siteGuid + ";" + numberOfUsersLeftToConvert + "(users to convert) ;" + adminSites[i].AdminCompany.Name + "; To be converted this time");
                             }
                         }
                         else
@@ -193,9 +199,15 @@ namespace PasswordHashing
             var siteUsers = new SiteUserCollection();
             ISortExpression sortExpression = new SortExpression(SiteUserFields.SiteUserGuid | SortOperator.Ascending);
             IPredicateExpression filter = GetSelectionFilter(siteGuid);
-            siteUsers.GetMulti(filter, null, 10); // We retreive a max of batchSize users
+            siteUsers.GetMulti(filter, null, 100); // We retreive a max of batchSize users
+/*
+            foreach (SiteUserEntity user in siteUsers)
+            {
+                Console.WriteLine("name: "+user.SiteUserName + ". >>>>>>>>  password: "+user.SiteUserPassword);
+            }
+*/
             return siteUsers.GetDbCount(filter);
-        } 
+        }
 
         static int PasswordHashing(PBKDF2HashingService hashingService, Stopwatch stopwatch, int siteGuid, int batchSize)
         {
@@ -389,11 +401,11 @@ namespace PasswordHashing
                 {11829, "Staby fliser og hegn"},
                 {11870, "Lampemesteren.dk"},
                 {11978, "Danfilter"},
-                {11981, "Alere A/S (2015)"},
+//                {11981, "Alere A/S (2015)"}, // Removed from blacklist on june 8th
                 {12031, "Performance Group Scandinavia A/S"},
                 {12046, "UCHolstebro.dk - Intranet"},
-                {12093, "Alere A/S SE (2015)"},
-                {12094, "Alere A/S NO (2015)"},
+//                {12093, "Alere A/S SE (2015)"}, // Removed from blacklist on june 8th
+//                {12094, "Alere A/S NO (2015)"}, // Removed from blacklist on june 8th
                 {12134, "WOUD A/S"},
                 {12160, "Wiley X 2015"},
                 {12201, "HELMUTH A. JENSEN A/S"},
@@ -404,7 +416,9 @@ namespace PasswordHashing
                 {12312, "BON'A PARTE - Test Environment"},
                 {12316, "Linds A/S TestEnvironment"},
                 {12332, "Antalis testsite" }, // Skal være det samme som production
-                {12335, "ReaMed A/S"}
+                {12335, "ReaMed A/S"},
+                {12042, "billig arbejdstøj" }, // De er ikke længere kunde
+                {12313, "Winefamily" } // They are already hashed, but signups from facebook apperears as not hashed
             };
             return returnList;
         }
